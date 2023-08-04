@@ -1,0 +1,77 @@
+@use 'sass:map';
+
+$breakpoints: (
+  xs: 370px,
+  sm: 430px,
+  md: 769px,
+  bg: 900px,
+  lg: 1025px,
+  xl: 1200px,
+  xxl: 1400px,
+  xxxl: 1920px,
+);
+
+@function assign-breakpoints($source) {
+  @return map.deep-merge($breakpoints, $source);
+}
+
+@mixin breakpoint($type, $bk-min, $bk-max: $bk-min) {
+  $min: if(
+    map.has-key($breakpoints, $bk-min),
+    map.get($breakpoints, $bk-min),
+    $bk-min
+  );
+
+  $max: if(
+    map.has-key($breakpoints, $bk-max),
+    map.get($breakpoints, $bk-max),
+    $bk-max
+  );
+
+  @if (is-number($min) and is-number($max)) {
+    $min: ($min - 0.02);
+    $max: ($max - 0.02);
+
+    @if ($type == 'up') {
+      @media screen and (min-width: $min) {
+        @content;
+      }
+    }
+    @else if ($type == 'down') {
+      @media screen and (max-width: $max) {
+        @content;
+      }
+    }
+    @else if ($type == 'between') {
+      @media screen and (min-width: $min) and (max-width: $max) {
+        @content;
+      }
+    }
+  }
+
+  @if (not is-number($min)) {
+    @warn 'The breakpoint argument $bk-min must be a number';
+  }
+
+  @if (not is-number($max)) {
+    @warn 'The breakpoint argument $bk-max must be a number';
+  }
+}
+
+@mixin breakpoint-up($bk-min) {
+  @include breakpoint('up', $bk-min) {
+    @content;
+  }
+}
+
+@mixin breakpoint-down($bk-min) {
+  @include breakpoint('down', $bk-min) {
+    @content;
+  }
+}
+
+@mixin breakpoint-between($bk-min, $bk-max) {
+  @include breakpoint('between', $bk-min, $bk-max) {
+    @content;
+  }
+}
