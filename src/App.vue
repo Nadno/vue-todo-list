@@ -5,8 +5,19 @@ import AddIcon from '@/components/icons/AddIcon.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
 
 import { useTodos } from '@/stores/todos.store';
+import { ref } from 'vue';
+
+const newTodoDescription = ref('');
 
 const todos = useTodos();
+
+const handleCreateTodo = () => {
+  const description = newTodoDescription.value;
+  if (!description) return;
+
+  todos.add(description);
+  newTodoDescription.value = '';
+};
 
 const handleComplete = ({ todo, index, focusoutTodo }: TodoEvent) => {
   todos.complete(todo.id);
@@ -31,17 +42,18 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
     <section class="create-form content">
       <h2 class="_sr-only" id="create-form-title">Create a new todo item</h2>
 
-      <form class="form">
+      <form class="form" @submit.prevent="handleCreateTodo">
         <input
           class="input"
           type="text"
           name="todo-description"
           id="todo-description"
           aria-labelledby="create-form-title"
+          v-model.trim="newTodoDescription"
         />
 
         <button class="submit" type="submit" aria-label="Create">
-          <add-icon :size="24" />
+          <add-icon class="icon" :size="24" />
         </button>
       </form>
     </section>
@@ -107,6 +119,50 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
       flex-direction: column;
       gap: spacing(700);
       margin-top: spacing(700);
+    }
+  }
+}
+
+.create-form {
+  width: 100%;
+  border-radius: 4px;
+  background-color: color('white');
+
+  .form {
+    display: flex;
+    border-radius: inherit;
+  }
+
+  .input {
+    width: 100%;
+    border: none;
+    border-radius: inherit;
+    padding: spacing(200) spacing(300);
+
+    font-size: text('bg');
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  .submit {
+    @extend %reset-button-appearance;
+
+    padding: spacing(200);
+    border-radius: inherit;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    background-color: color('primary');
+
+    .icon {
+      transition: transform 250ms ease-out;
+    }
+
+    @include hover {
+      cursor: pointer;
+
+      background-color: color('primary-dark');
     }
   }
 }
