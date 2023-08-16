@@ -1,15 +1,48 @@
 <script lang="ts" setup>
-import TodoList, { TodoEvent } from './components/TodoList.vue';
+import DropdownMenu from '@/components/DropdownMenu.vue';
+import DropdownMenuItem from '@/components/DropdownMenuItem.vue';
+import TodoList, { TodoEvent } from '@/components/TodoList.vue';
 
 import AddIcon from '@/components/icons/AddIcon.vue';
 import SearchIcon from '@/components/icons/SearchIcon.vue';
 
-import { useTodos } from '@/stores/todos.store';
-import { ref } from 'vue';
+import {
+  TodosFilterSortByKeys,
+  useTodos,
+  useTodosFilter,
+} from '@/stores/todos.store';
+import { watch, reactive, ref } from 'vue';
+import SortDownIcon from './components/icons/SortDownIcon.vue';
 
-const newTodoDescription = ref('');
+const SORT_MENU_ITEMS: Record<TodosFilterSortByKeys, string> = {
+  'A-Z': 'A-Z',
+  'Z-A': 'Z-A',
+  recent: 'Recent',
+  older: 'Older',
+  'recently-added': 'Recently added',
+};
 
-const todos = useTodos();
+const newTodoDescription = ref(''),
+  searchTodo = ref(''),
+  selectedSortType = ref<TodosFilterSortByKeys>('recently-added');
+
+const globalTodosFilter = reactive({
+  search: '',
+  sortBy: selectedSortType.value,
+});
+
+const todos = useTodos(),
+  uncompletedTodos = useTodosFilter(todos.list.uncompleted, globalTodosFilter),
+  completedTodos = useTodosFilter(todos.list.completed, globalTodosFilter);
+
+watch(
+  selectedSortType,
+  () => (globalTodosFilter.sortBy = selectedSortType.value),
+);
+
+const handleFilterTodos = () => {
+  globalTodosFilter.search = searchTodo.value;
+};
 
 const handleCreateTodo = () => {
   const description = newTodoDescription.value;
@@ -50,6 +83,7 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
           id="todo-description"
           aria-labelledby="create-form-title"
           v-model.trim="newTodoDescription"
+          placeholder="Add new To do: 'Clean my bedroom'"
         />
 
         <button class="submit" type="submit" aria-label="Create">
@@ -61,15 +95,65 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
     <section class="filter-form content">
       <h2 class="_sr-only" id="filter-form-title">Filter the todo lists</h2>
 
-      <form
-        class="form"
-        aria-labelledby="filter-form-title"
-        aria-controls="uncompleted-todos completed-todos"
+      <div class="search-form form">
+        <form
+          class="form"
+          aria-labelledby="filter-form-title"
+          aria-controls="uncompleted-todos completed-todos"
+          @submit.prevent="handleFilterTodos"
+        >
+          <input
+            class="input"
+            type="search"
+            name="todo-search"
+            id="todo-search"
+            v-model.trim="searchTodo"
+            placeholder="Search for words"
+          />
+
+          <button class="submit" type="submit" aria-label="Search">
+            <search-icon :size="24" />
+          </button>
+        </form>
+      </div>
+
+      <dropdown-menu
+        class="sort-menu-container"
+        id="sort-by-menu"
+        label="Sort by"
+        placement="bottom-end"
       >
-        <button>
-          <search-icon :size="24" />
-        </button>
-      </form>
+        <template #menu-trigger="{ attrs, toggle }">
+          <button
+            v-bind="attrs"
+            @click="toggle"
+            class="sort-menu-trigger"
+            aria-label="Sort by"
+          >
+            {{ SORT_MENU_ITEMS[selectedSortType] }}
+
+            <sort-down-icon class="icon" :size="24" />
+          </button>
+        </template>
+
+        <template #menu-content="{ attrs }">
+          <div class="sort-menu" v-bind="attrs">
+            <dropdown-menu-item class="item" disabled>
+              Sort by
+            </dropdown-menu-item>
+
+            <dropdown-menu-item
+              v-for="(sortLabel, sortType) in SORT_MENU_ITEMS"
+              v-model="selectedSortType"
+              :key="sortType"
+              :value="sortType"
+              class="item"
+            >
+              {{ sortLabel }}
+            </dropdown-menu-item>
+          </div>
+        </template>
+      </dropdown-menu>
     </section>
 
     <div class="content -todos">
@@ -77,10 +161,9 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
         <h2 class="title">ToDo</h2>
 
         <todo-list
-          ref="uncompletedTodosRef"
           class="list"
           id="uncompleted-todos"
-          :list="todos.list.uncompleted"
+          :list="uncompletedTodos"
           @complete="handleComplete"
           @remove="handleRemove"
         />
@@ -90,16 +173,28 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
         <h2 class="title">Completed</h2>
 
         <todo-list
-          ref="completedTodosRef"
           class="list"
           id="uncompleted-todos"
-          :list="todos.list.completed"
+          :list="completedTodos"
           @uncomplete="handleUncomplete"
           @remove="handleRemove"
         />
       </section>
     </div>
   </main>
+  <footer class="footer">
+    <p>
+      Site icons from:
+      <a
+        class="link"
+        href="https://oh-vue-icons.js.org/"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        Oh Vue Icons
+      </a>
+    </p>
+  </footer>
 </template>
 
 <style lang="scss" scoped>
@@ -123,6 +218,18 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
   }
 }
 
+.filter-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: spacing(700);
+
+  .content {
+    height: 100%;
+  }
+}
+
+.search-form,
 .create-form {
   width: 100%;
   border-radius: 4px;
@@ -140,6 +247,9 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
     padding: spacing(200) spacing(300);
 
     font-size: text('bg');
+    color: color('text-dark');
+
+    appearance: none;
 
     &:focus-visible {
       outline: none;
@@ -167,6 +277,72 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
   }
 }
 
+.sort-menu-container {
+  @include breakpoint-up('sm') {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+.sort-menu-trigger {
+  @extend %reset-button-appearance;
+
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: spacing(200);
+
+  border-radius: 4px;
+  background-color: color('secondary-background');
+
+  color: color('text-light');
+
+  & {
+    @include hover() {
+      cursor: pointer;
+      background-color: color('secondary-background-dark');
+    }
+
+    &[data-state='open'] {
+      .icon {
+        transform: rotateX(180deg);
+      }
+    }
+  }
+
+  .icon {
+    margin-left: spacing(200);
+  }
+}
+
+.sort-menu {
+  display: flex;
+  flex-direction: column;
+  padding: spacing(100);
+  border-radius: 4px;
+  background-color: color('secondary-background');
+
+  .item {
+    display: inline-block;
+    padding: spacing(200) spacing(300);
+
+    font-size: text('md');
+    font-family: inherit;
+    color: color('text-light');
+
+    @include hover($not: '[data-disabled="true"]') {
+      cursor: pointer;
+      background-color: color('secondary-background-dark');
+    }
+
+    &[data-disabled='true'] {
+      color: color('text-light', 0.5);
+    }
+  }
+}
+
 .todo-list {
   .title {
     margin-bottom: spacing(200);
@@ -175,6 +351,7 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
     color: darken(color('text-light'), 25%);
     text-transform: uppercase;
   }
+
   .list {
     display: flex;
     flex-direction: column;
@@ -183,6 +360,22 @@ const handleRemove = ({ todo, index, focusoutTodo }: TodoEvent) => {
     list-style: none;
     user-select: none;
     font-size: text('sm');
+  }
+}
+
+.footer {
+  width: 100%;
+
+  padding: spacing(700);
+  margin-top: spacing(700);
+  background-color: color('secondary-background');
+
+  font-size: text('sm');
+  text-align: center;
+  color: color('text-light', 0.8);
+
+  .link {
+    color: inherit;
   }
 }
 </style>

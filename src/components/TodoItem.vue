@@ -71,15 +71,15 @@ const handleChange = (checked: boolean) => {
 .todo-item {
   display: flex;
   align-items: center;
-  gap: spacing(400);
+  gap: spacing(300);
 
   border-radius: 4px;
   padding: spacing(200);
   background-color: color('white', 0.1);
 
   .check {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 4px;
     background-color: color('white');
 
@@ -91,7 +91,7 @@ const handleChange = (checked: boolean) => {
   }
 
   .check .indicator {
-    color: color('text-light');
+    color: color('text-dark');
   }
 
   .content {

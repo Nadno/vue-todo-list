@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { PropType, ref } from 'vue';
+import { ref } from 'vue';
 
 import TodoItem from '@/components/TodoItem.vue';
 
@@ -29,15 +29,8 @@ export type TodoListListeners = {
   (type: 'uncomplete', event: TodoEvent): void;
 };
 
-const props = defineProps({
-  list: {
-    type: Array as PropType<Todo[]>,
-    default: [],
-  },
-  itemClass: {
-    req: false,
-    type: [String, Array] as PropType<TodoListProps['itemClass']>,
-  },
+const props = withDefaults(defineProps<TodoListProps>(), {
+  list: () => [],
 });
 
 defineEmits<TodoListListeners>();
